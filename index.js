@@ -26,6 +26,9 @@ const client = new MongoClient(uri, {
       // Connect the client to the server	(optional starting in v4.7)
       await client.connect();
       const serviceCollection = client.db('carDoctor').collection('services'); 
+      const bookingCollection = client.db('carDoctor').collection('bookings'); 
+
+      // Get Services From Services Collection Api
 
       app.get('/services' , async (req,res) =>{
         const cursor = serviceCollection.find();
@@ -36,14 +39,60 @@ const client = new MongoClient(uri, {
         const id = req.params.id;
         const query = { _id: new ObjectId(id)};
         const options = {
-            projection: {  title: 1, price: 1 },
+            projection: {  title: 1, price: 1 ,img: 1},
           };
 
         const result = await serviceCollection.findOne(query,options)
         
         res.send(result);
       })
-      
+      app.get('/bookings' , async (req,res) => {
+        
+        const email = req.query.email;
+        let query = {}
+        if(req.query?.email){
+          query = {email:email}
+        }
+        const result = await bookingCollection.find(query).toArray()
+        res.json(result)
+      })
+
+      app.get('/bookings' , async (req,res) => {
+        const result = await bookingCollection.find({}).toArray()
+        res.json(result)
+      })
+
+      // Create Bookings Collections For Booking Orders
+
+      app.post('/bookings' , async (req,res) =>{
+        const booking = req.body;
+        console.log(booking)
+        const result = await bookingCollection.insertOne(booking);
+        res.json(result)
+
+      })
+
+      // Delete User Booking
+      app.delete('/bookings/:id', async(req,res) => {
+        const id = req.params.id;
+        const query = {_id: new ObjectId(id)}
+        const result = await bookingCollection.deleteOne(query)
+        res.json(result);
+      })      
+      // Update Status of User Booking
+      app.patch('/bookings/:id', async(req,res) => {
+        const id = req.params.id;
+        const filter = {_id: new ObjectId(id)}
+        const updateBooking = req.body;
+        const updateDoc = {
+          $set: {
+            status : updateBooking.status
+          },
+        };
+
+        const result = await bookingCollection.updateOne(filter,updateDoc)
+        res.json(result);
+      })      
     } finally {
       // Ensures that the client will close when you finish/error
     //   await client.close();
